@@ -1,0 +1,12 @@
+.idea
+
+db.sqlite3
+**/*.pyc
+
+media
+staticfiles
+
+.coverage
+.pytest_cache
+
+html_cov
