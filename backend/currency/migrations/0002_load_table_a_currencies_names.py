@@ -9,15 +9,14 @@ def load_currencies_names(apps, schema_editor):
     with open(os.path.join("fixtures", "currencies_names.json")) as file:
         data = json.load(file)
 
-        CurrencyName = apps.get_model('currency', 'CurrencyName')
+        CurrencyName = apps.get_model("currency", "CurrencyName")
 
         currencies = map(lambda x: CurrencyName(**x), data)
         CurrencyName.objects.bulk_create(currencies)
 
 
 def delete_currencies_names(apps, schema_editor):
-    CurrencyName = apps.get_model('currency', 'CurrencyName')
-
+    CurrencyName = apps.get_model("currency", "CurrencyName")
 
 
 class Migration(migrations.Migration):

@@ -9,8 +9,8 @@ class CurrencyName(models.Model):
         return self.code
 
     class Meta:
-        verbose_name = 'Currency name'
-        verbose_name_plural = 'Currency Names'
+        verbose_name = "Currency name"
+        verbose_name_plural = "Currency Names"
 
 
 class CurrencyDate(models.Model):
@@ -20,8 +20,8 @@ class CurrencyDate(models.Model):
         return str(self.date)
 
     class Meta:
-        verbose_name = 'Currency Date'
-        verbose_name_plural = 'Currency Dates'
+        verbose_name = "Currency Date"
+        verbose_name_plural = "Currency Dates"
 
 
 class CurrencyValue(models.Model):
@@ -33,5 +33,5 @@ class CurrencyValue(models.Model):
         return str(self.exchange_rate)
 
     class Meta:
-        verbose_name = 'Currency Value'
-        verbose_name_plural = 'Currency Values'
+        verbose_name = "Currency Value"
+        verbose_name_plural = "Currency Values"
