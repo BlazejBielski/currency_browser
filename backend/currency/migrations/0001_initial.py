@@ -37,8 +37,8 @@ class Migration(migrations.Migration):
             fields=[
                 ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("exchange_rate", models.DecimalField(decimal_places=8, max_digits=10)),
-                ("currency_dates", models.ManyToManyField(related_name="currency_values", to="currency.currencydate")),
-                ("currency_names", models.ManyToManyField(related_name="currency_values", to="currency.currencyname")),
+                ("currency_date", models.ManyToManyField(related_name="currency_values", to="currency.currencydate")),
+                ("currency_name", models.ManyToManyField(related_name="currency_values", to="currency.currencyname")),
             ],
             options={
                 "verbose_name": "Currency Value",

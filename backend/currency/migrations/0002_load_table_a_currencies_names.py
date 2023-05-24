@@ -18,10 +18,16 @@ def load_currencies_names(apps, schema_editor):
 def delete_currencies_names(apps, schema_editor):
     CurrencyName = apps.get_model("currency", "CurrencyName")
 
+    with open(os.path.join("fixtures", "currencies_names.json")) as file:
+        data = json.load(file)
+
+        for item in data:
+            CurrencyName.objects.filter(code=item["fields"]["code"]).delete()
+
 
 class Migration(migrations.Migration):
     dependencies = [
         ("currency", "0001_initial"),
     ]
 
-    operations = []
+    operations = [migrations.RunPython(load_currencies_names, delete_currencies_names)]
