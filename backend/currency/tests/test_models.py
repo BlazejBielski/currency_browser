@@ -9,19 +9,19 @@ from currency.models import CurrencyValue, CurrencyDate, CurrencyName
 
 
 def test_add_one_currency_data(currency):
-    currency_value = CurrencyValue.objects.filer(currency_date=currency).first()
+    currency_value = CurrencyValue.objects.filter(currency_date=currency).first()
 
     assert currency_value.currency_name.code == "USD"
-    assert currency_value.currency_name.code == "dolar amerykański"
+    assert currency_value.currency_name.name == "dolar amerykański"
     assert currency_value.currency_date.date == currency.date
 
 
-def test_get_values_by_date_range():
+def test_get_values_by_date_range(currency, currency_2):
     dates = CurrencyDate.objects.filter(date__range=(date(2023, 5, 20), date(2023, 5, 23)))
     values = dates.filter(currency_values__currency_name__code="USD")
 
     assert len(values) == 2
-    assert values.first().date.currency_values.first().exchange_rate == Decimal("0.20")
+    assert values.first().currency_values.first().exchange_rate == Decimal("0.20")
 
 
 def test_add_two_values_for_date_for_one_currency(currency_date, currency_name):

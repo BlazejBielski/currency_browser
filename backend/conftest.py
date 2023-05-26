@@ -12,8 +12,7 @@ def currency(db):
     currency_value = CurrencyValue.objects.create(
         exchange_rate=0.20, currency_name=currency_name, currency_date=currency_date
     )
-    currency_value.currency_name.add(currency_name)
-    currency_value.currency_date.add(currency_date)
+
     return currency_date
 
 
@@ -24,8 +23,7 @@ def currency_2(db):
     currency_value = CurrencyValue.objects.create(
         exchange_rate=0.440, currency_name=currency_name, currency_date=currency_date
     )
-    currency_value.currency_name.add(currency_name)
-    currency_value.currency_date.add(currency_date)
+
     return currency_date
 
 
