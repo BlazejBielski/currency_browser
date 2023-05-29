@@ -11,7 +11,7 @@ def load_currencies_names(apps, schema_editor):
 
         CurrencyName = apps.get_model("currency", "CurrencyName")
 
-        currencies = map(lambda x: CurrencyName(**x['fields']), data)
+        currencies = map(lambda x: CurrencyName(**x["fields"]), data)
         CurrencyName.objects.bulk_create(currencies)
 
 
