@@ -28,25 +28,43 @@ def count_holidays_during_weekdays(start_date, end_date):
 
 
 def count_days_off(start_date, end_date):
-    s_date = datetime.strptime(start_date, "%Y-%m-%d")
-    e_date = datetime.strptime(end_date, "%Y-%m-%d")
-
     days_count = 0
 
-    while s_date <= e_date:
-        if s_date.weekday() >= 5:
+    while start_date <= end_date:
+        if start_date.weekday() >= 5:
             days_count += 1
 
-        s_date += timedelta(days=1)
+        start_date += timedelta(days=1)
 
     return days_count
 
 
 def count_days(start_date, end_date):
-    start_date = datetime.strptime(start_date, "%Y-%m-%d")
-    end_date = datetime.strptime(end_date, "%Y-%m-%d")
-
     return (end_date - start_date).days
+
+
+def get_currency_data_from_nbp_api(start_date, end_date):
+    currency_nbp_url = f"http://api.nbp.pl/api/exchangerates/tables/a/{start_date}/{end_date}/"
+
+    with request.urlopen(currency_nbp_url) as response:
+        data = json.loads(response.read().decode())
+
+    currency_names = models.CurrencyName.objects.all()
+
+    for day in data:
+        if not models.CurrencyDate.objects.filter(date=datetime.strptime(day["effectiveDate"], "%Y-%m-%d")):
+            currency_date = models.CurrencyDate.objects.create(data=datetime.strptime(day["effectiveDate"], "%Y-%m-%d"))
+
+            currency_values = [
+                models.CurrencyValue(
+                    exchange_rate=rate["mid"],
+                    currency_date=currency_date,
+                    currency_name=currency_names.get(code=rate["code"]),
+                )
+                for rate in day["rates"]
+            ]
+
+            models.CurrencyValue.objects.bulk_create(currency_values)
 
 
 class CurrencyView(FormView):
@@ -61,13 +79,13 @@ class CurrencyView(FormView):
 
         dates = models.CurrencyDate.objects.filter(date__range=(start_date, end_date)).count()
 
-        if dates >= count_days(start_date, end_date) - count_holidays_during_weekdays(
+        if dates.count() < count_days(start_date, end_date) - count_holidays_during_weekdays(
             start_date, end_date
         ) - count_days_off(start_date, end_date):
-            # TODO: get data drom db
-            pass
+            get_currency_data_from_nbp_api(start_date, end_date)
 
-        # TODO: get data from NBP API
+        context = self.get_context_data()
+        context.update({"dates": dates})
 
         return super().form_valid(form)
 
