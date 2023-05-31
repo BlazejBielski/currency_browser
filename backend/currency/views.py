@@ -4,10 +4,17 @@ from datetime import datetime, timedelta
 from django.views.generic import FormView
 from urllib import request
 
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
 from . import forms, models
+from .serializers import CurrencyRateSerializer
 
 
 def get_holidays(start_date, end_date):
+    start_date = datetime.strftime(start_date, "%Y-%m-%d")
+    end_date = datetime.strftime(end_date, "%Y-%m-%d")
     url = f"https://openholidaysapi.org/PublicHolidays?countryIsoCode=PL&languageIsoCode=PL&validFrom={start_date}&validTo={end_date}"
     with request.urlopen(url) as response:
         data = json.loads(response.read().decode())
@@ -44,7 +51,7 @@ def count_days(start_date, end_date):
 
 
 def get_currency_data_from_nbp_api(start_date, end_date):
-    currency_nbp_url = f"http://api.nbp.pl/api/exchangerates/tables/a/{start_date}/{end_date}/"
+    currency_nbp_url = f"https://api.nbp.pl/api/exchangerates/tables/a/{start_date}/{end_date}/"
 
     with request.urlopen(currency_nbp_url) as response:
         data = json.loads(response.read().decode())
@@ -72,23 +79,6 @@ class CurrencyView(FormView):
     template_name = "currency/currency_view.html"
     success_url = "/"
 
-    def form_valid(self, form):
-        start_date = form.cleaned_data.get("start_date")
-        end_date = form.cleaned_data.get("end_date")
-        currencies = form.cleaned_data.get("currency")
-
-        dates = models.CurrencyDate.objects.filter(date__range=(start_date, end_date)).count()
-
-        if dates.count() < count_days(start_date, end_date) - count_holidays_during_weekdays(
-            start_date, end_date
-        ) - count_days_off(start_date, end_date):
-            get_currency_data_from_nbp_api(start_date, end_date)
-
-        context = self.get_context_data()
-        context.update({"dates": dates})
-
-        return super().form_valid(form)
-
     def get_form(self, form_class=None):
         currencies = models.CurrencyName.objects.all()
         form = super().get_form(form_class)
@@ -96,3 +86,46 @@ class CurrencyView(FormView):
         form.fields["currency"].choices = [(currency.code, currency.name.title()) for currency in currencies]
 
         return form
+
+
+class CurrencyAPI(APIView):
+    def post(self, request, format=None):
+        start_date = request.data.get("start_date")
+        end_date = request.data.get("end_date")
+
+        if start_date is not None and end_date is not None:
+            start_date = datetime.strptime(start_date, "%Y-%m-%d")
+            end_date = datetime.strptime(end_date, "%Y-%m-%d")
+            currencies = models.CurrencyName.objects.all()
+
+            dates = models.CurrencyDate.objects.filter(date__range=(start_date, end_date))
+
+            if dates.count() < count_days(start_date, end_date) - count_holidays_during_weekdays(
+                    start_date, end_date
+            ) - count_days_off(start_date, end_date):
+                get_currency_data_from_nbp_api(start_date, end_date)
+
+            currency_data = models.CurrencyValue.objects.filter(
+                currency_date__date__range=(start_date, end_date)
+            ).select_related("currency_name")
+
+            data = {
+                "labels": [date.date.strftime("%Y-%m-%d") for date in dates],
+                "datasets": [
+                    {
+                        "label": currency.code,
+                        "data": [
+                            float(value.exchange_rate)
+                            for value in currency_data
+                            if value.currency_name.code == currency.code
+                        ]
+                    } for currency in currencies
+                ]
+            }
+
+        else:
+            return Response("Start date and end date is required", status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(data, status=status.HTTP_200_OK)
+
+    pass
