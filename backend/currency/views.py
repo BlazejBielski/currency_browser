@@ -1,14 +1,14 @@
 import json
 from datetime import datetime, timedelta
-
-from django.views.generic import FormView
 from urllib import request
 
+from django.views.generic import FormView
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from . import forms, models
+from .models import CurrencyValue
 from .serializers import CurrencyRateSerializer
 
 
@@ -25,13 +25,12 @@ def get_holidays(start_date, end_date):
 def count_holidays_during_weekdays(start_date, end_date):
     holidays = get_holidays(start_date, end_date)
 
-    count_weekday_holidays = 0
-
+    week_days_counter = 0
     for holiday in holidays:
         if datetime.strptime(holiday, "%Y-%m-%d").weekday() < 5:
-            count_weekday_holidays += 1
+            week_days_counter += 1
 
-    return count_weekday_holidays
+    return week_days_counter
 
 
 def count_days_off(start_date, end_date):
@@ -50,17 +49,17 @@ def count_days(start_date, end_date):
     return (end_date - start_date).days
 
 
-def get_currency_data_from_nbp_api(start_date, end_date):
-    currency_nbp_url = f"https://api.nbp.pl/api/exchangerates/tables/a/{start_date}/{end_date}/"
+def get_currency_data_from_nbp_API(start_date, end_date):
+    url = f"http://api.nbp.pl/api/exchangerates/tables/a/{start_date}/{end_date}/"
 
-    with request.urlopen(currency_nbp_url) as response:
+    with request.urlopen(url) as response:
         data = json.loads(response.read().decode())
 
     currency_names = models.CurrencyName.objects.all()
 
     for day in data:
         if not models.CurrencyDate.objects.filter(date=datetime.strptime(day["effectiveDate"], "%Y-%m-%d")):
-            currency_date = models.CurrencyDate.objects.create(data=datetime.strptime(day["effectiveDate"], "%Y-%m-%d"))
+            currency_date = models.CurrencyDate.objects.create(date=datetime.strptime(day["effectiveDate"], "%Y-%m-%d"))
 
             currency_values = [
                 models.CurrencyValue(
@@ -70,7 +69,6 @@ def get_currency_data_from_nbp_api(start_date, end_date):
                 )
                 for rate in day["rates"]
             ]
-
             models.CurrencyValue.objects.bulk_create(currency_values)
 
 
@@ -94,16 +92,16 @@ class CurrencyAPI(APIView):
         end_date = request.data.get("end_date")
 
         if start_date is not None and end_date is not None:
-            start_date = datetime.strptime(start_date, "%Y-%m-%d")
-            end_date = datetime.strptime(end_date, "%Y-%m-%d")
+            start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+            end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
             currencies = models.CurrencyName.objects.all()
 
             dates = models.CurrencyDate.objects.filter(date__range=(start_date, end_date))
 
             if dates.count() < count_days(start_date, end_date) - count_holidays_during_weekdays(
-                    start_date, end_date
+                start_date, end_date
             ) - count_days_off(start_date, end_date):
-                get_currency_data_from_nbp_api(start_date, end_date)
+                get_currency_data_from_nbp_API(start_date, end_date)
 
             currency_data = models.CurrencyValue.objects.filter(
                 currency_date__date__range=(start_date, end_date)
@@ -118,14 +116,13 @@ class CurrencyAPI(APIView):
                             float(value.exchange_rate)
                             for value in currency_data
                             if value.currency_name.code == currency.code
-                        ]
-                    } for currency in currencies
-                ]
+                        ],
+                    }
+                    for currency in currencies
+                ],
             }
 
         else:
-            return Response("Start date and end date is required", status=status.HTTP_400_BAD_REQUEST)
+            return Response("Start date and End date reguired.", status=status.HTTP_400_BAD_REQUEST)
 
         return Response(data, status=status.HTTP_200_OK)
-
-    pass

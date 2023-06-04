@@ -24,7 +24,7 @@ class CurrencyRateSerializer(serializers.Serializer):
             "data": [
                 float(value.exchange_rate)
                 for value in CurrencyValue.objects.filter(currency_name__code=currency)
-            ]
+            ],
         } for currency in currencies]
 
         return data
