@@ -1,1 +1,11 @@
 # Currency Browser
+
+## Krótki opis projektu.
+1. Zastosowane technologie:
+   - python
+   - django
+   - drf
+   - chart.js (front)
+2. Zadanie można było rozwiązać na wiele różnych sposobów, pierwotnie projekt był oparty na czystym Django, ostatecznie projekt korzysta z drf i przekazuje dane do skryptu wyświetlającego wykresy na bazie chart.js
+3. W aplikacji currency jest customowa migracja, która zaczytuje do bazy danych wszystkie waluty znajdujące się w tabeli A NBP. Zastosowano to rozwiązanie po to, żeby przy odpaleniu aplikacji nie witał użytkownika pusty ekran.
+4. Staralem się, aby nazwy funkcji były deskryptywne.
